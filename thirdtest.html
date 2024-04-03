@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Play Tracking Web App</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+          integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container">
+        <h1>Game Play Tracking Web App</h1>
+        <a href="#" class="btn btn-primary mb-3" id="add-game-btn">Add Game</a>
+        <input type="text" id="search-input" class="form-control mb-3" placeholder="Search for a game">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Platform</th>
+                    <th>Completion Status</th>
+                    <th>Hours Played</th>
+                    <th>Levels Completed</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="games-table">
+            </tbody>
+        </table>
+
+    </div>
+    <script>
+        const API_URL = "http://localhost:5000/games";
+
+        document.getElementById("add-game-btn").addEventListener("click", () => {
+            const title = prompt("Enter the game title");
+            const platform = prompt("Enter the game platform");
+            fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title,
+                    platform
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const tableRow = `
+                    <tr>
+                        <td>${data.title}</td>
+                        <td>${data.platform}</td>
+                        <td>${data.completion_status}</td>
+                        <td>${data.hours_played}</td>
+                        <td>${data.levels_completed}</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="editGame(${data.id})">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteGame(${data.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById("games-table").innerHTML += tableRow;
+            });
+        });
+
+        document.getElementById("search-input").addEventListener("input", () => {
+            const searchTerm = document.getElementById("search-input").value.toLowerCase();
+            const gamesRows = document.getElementsByTagName("tr");
+            for (let i = 1; i < gamesRows.length; i++) {
+                const gameTitle = gamesRows[i].children[0].innerText.toLowerCase();
+                if (gameTitle.includes(searchTerm)) {
+                    gamesRows[i].style.display = "";
+                } else {
+                    gamesRows[i].style.display = "none";
+                }
+            }
+        });
+
+        function editGame(gameId) {
+            const game = GAMES.find(g => g.id === gameId);
+            const title = prompt("Enter the updated game title");
+            const platform = prompt("Enter the updated game platform");
+            fetch({API_URL}/{gameId}, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title,
+                    platform
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                game.title = data.title;
+                game.platform = data.platform;
+                const gamesRows = document.getElementsByTagName("tr");
+                for (let i = 1; i < gamesRows.length; i++) {
+                    if (gamesRows[i].children[0].innerText === data.title) {
+                        gamesRows[i].children[0].innerText = data.title;
+                        gamesRows[i].children[1].innerText = data.platform;
+                    }
+                }
+            });
+        }
+
+        function deleteGame(gameId) {
+            if (confirm("Are you sure you want to delete this game?")) {
+                fetch({API_URL}/{gameId}, {
+                    method: "DELETE"
+                })
+                .then(() => {
+                    const gamesRows = document.getElementsByTagName("tr");
+                    for (let i = 1; i < gamesRows.length; i++) {
+                        if (gamesRows[i].children[0].innerText === gameId) {
+                            gamesRows[i].remove();
+                            break;
+                        }
+                    }
+                });
+            }
+        }
+
+        function loadGames() {
+            fetch(API_URL)
+            .then(response => response.json())
+            .then(data => {
+                for (let game of data) {
+                    const tableRow = `
+                        <tr>
+                            <td>${game.title}</td>
+                            <td>${game.platform}</td>
+                            <td>${game.completion_status}</td>
+                            <td>${game.hours_played}</td>
+                            <td>${game.levels_completed}</td>
+                            <td>
+                                <button class="btn btn-primary" onclick="editGame(${game.id})">Edit</button>
+                                <button class="btn btn-danger" onclick="deleteGame(${game.id})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                    document.getElementById("games-table").innerHTML += tableRow;
+                }
+            });
+        }
+
+        loadGames();
+    </script>
+</body>
+</html>
