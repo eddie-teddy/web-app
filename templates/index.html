@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Play Tracking Web App</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+          integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container">
+        <h1>Game Play Tracking Web App</h1>
+        <div class="row">
+            <div class="col-md-6">
+                <a href="#" class="btn btn-primary mb-3" id="add-game-btn">Add Game</a>
+                <input type="text" id="search-input" class="form-control mb-3" placeholder="Search for a game">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Platform</th>
+                            <th>Completion Status</th>
+                            <th>Hours Played</th>
+                            <th>Levels Completed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="games-table">
+                    </tbody>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h2>Game Stats</h2>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Play Time (hours)</th>
+                            <th>Levels Completed</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-table">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        const API_URL = "{% url 'api-games' %}";
+
+        const gamesTable = document.getElementById("games-table");
+        const statsTable = document.getElementById("stats-table");
+
+        function loadGames() {
+            fetch(API_URL)
+            .then(response => response.json())
+            .then(data => {
+                gamesTable.innerHTML = "";
+                let totalPlayTime = 0;
+                let totalLevelsCompleted = 0;
+                data.forEach(game => {
+                    totalPlayTime += parseInt(game.hours_played);
+                    totalLevelsCompleted += parseInt(game.levels_completed);
+                    const tableRow = `
+                        <tr>
+                            <td>${game.title}</td>
+                            <td>${game.hours_played}</td>
+                            <td>${game.levels_completed}</td>
+                            <td>
+                                <button class="btn btn-primary" onclick="editGame(${game.id})">Edit</button>
+                                <button class="btn btn-danger" onclick="deleteGame(${game.id})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                    gamesTable.innerHTML += tableRow;
+                });
+                consttotalRow = `
+                    <tr>
+                        <td>Total</td>
+                        <td>${totalPlayTime}</td>
+                        <td>${totalLevelsCompleted}</td>
+                    </tr>
+                `;
+                statsTable.innerHTML = totalRow;
+            });
+        }
+
+        document.getElementById("add-game-btn").addEventListener("click", () => {
+            const title = prompt("Enter the game title");
+            const platform = prompt("Enter the game platform");
+            const completion_status = "Not Started";
+            const hours_played = 0;
+            const levels_completed = 0;
+            fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title,
+                    platform,
+                    completion_status,
+                    hours_played,
+                    levels_completed
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadGames();
+            });
+        });
+
+        document.getElementById("search-input").addEventListener("input", () => {
+            const searchTerm = document.getElementById("search-input").value.toLowerCase();
+            const gamesRows = Array.from(gamesTable.rows);
+            gamesRows.slice(1).forEach(row => {
+                const gameTitle = row.cells[0].innerText.toLowerCase();
+                if (gameTitle.includes(searchTerm)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        });
+
+        function editGame(gameId) {
+            const completion_status = prompt("Enter the new completion status");
+            const hours_played = prompt("Enter the new hours played");
+            const levels_completed = prompt("Enter the new levels completed");
+            fetch(`${API_URL}/${gameId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    completion_status,
+                    hours_played,
+                    levels_completed
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadGames();
+            });
+        }
+
+        function deleteGame(gameId) {
+            if (confirm("Are you sure you want to delete this game?")) {
+                fetch(`${API_URL}/${gameId}`, {
+                    method: "DELETE"
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadGames();
+                });
+            }
+        }
+
+        loadGames();
+
+    </script>
+</body>
+</html>
